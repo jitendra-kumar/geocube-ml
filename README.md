@@ -1,8 +1,8 @@
-# GeoCube
+# GeoCube-ML
 
 > A lightweight framework for building **analysis-ready ancillary data cubes** for ecological, environmental, and geospatial machine learning.
 
-GeoCube converts collections of GeoTIFF and NetCDF layers into standardized, reusable **Zarr data cubes** that can be queried with **xarray** and processed lazily with **Dask**.
+GeoCube-ML converts collections of GeoTIFF and NetCDF layers into standardized, reusable **Zarr data cubes** that can be queried with **xarray** and processed lazily with **Dask**.
 
 It is designed for workflows where many gridded ancillary datasets are repeatedly reprojected, resampled, clipped, stacked, and extracted at ecological point observation locations.
 
@@ -10,20 +10,7 @@ Instead of preprocessing the same rasters for every modeling project, GeoCube le
 
 ---
 
-## Important naming note
-
-There is already a Python package named `geocube` on PyPI. That package is maintained by Corteva and focuses on converting vector data into rasterized xarray objects.
-
-This project uses the name **GeoCube** as a project/repository name for an analysis-ready ancillary raster cube workflow. If publishing to PyPI, consider using a distinct package name such as:
-
-* `geocube-ardc`
-* `geocube-ml`
-* `eco-geocube`
-* `ancillary-geocube`
-
----
-
-## Why GeoCube?
+## Why GeoCube-ML?
 
 Ecological upscaling and spatial prediction workflows often require many predictor layers:
 
@@ -59,7 +46,7 @@ Raw rasters are ingested once into a reusable cube. Modeling workflows then quer
 
 ## Core design
 
-A GeoCube project is organized as a **CubeCollection**.
+A GeoCube-ML project is organized as a **CubeCollection**.
 
 A collection can contain many region- and resolution-specific cubes.
 
@@ -190,7 +177,7 @@ This ensures that a region-specific cube truly represents only the defined regio
 
 ## Provenance tracking
 
-GeoCube tracks provenance for every layer.
+GeoCube-ML tracks provenance for every layer.
 
 Each ingested layer stores provenance metadata in the Zarr variable attributes and in the STAC catalog.
 
@@ -243,7 +230,7 @@ Example provenance:
 
 ## STAC catalog
 
-GeoCube maintains a lightweight STAC catalog alongside the cubes.
+GeoCube-ML maintains a lightweight STAC catalog alongside the cubes.
 
 Each layer is represented as a STAC Item with assets for:
 
@@ -270,7 +257,7 @@ This makes the cube discoverable without opening every Zarr store.
 For development:
 
 ```bash
-git clone https://github.com/your-org/geocube
+git clone https://github.com/your-org/geocube-ml
 cd geocube
 pip install -e .
 ```
@@ -279,7 +266,7 @@ Example dependencies:
 
 ```toml
 [project]
-name = "geocube-ardc"
+name = "geocube-ml"
 version = "0.1.0"
 dependencies = [
   "xarray",
@@ -297,10 +284,8 @@ dependencies = [
 ]
 
 [project.scripts]
-geocube = "geocube.cli:app"
+geocube-ml = "geocube-ml.cli:app"
 ```
-
-If you publish the package, avoid using `name = "geocube"` unless you intentionally coordinate around the existing PyPI package name.
 
 ---
 
@@ -309,13 +294,13 @@ If you publish the package, avoid using `name = "geocube"` unless you intentiona
 Initialize a collection:
 
 ```bash
-geocube collection-init my_collection
+geocube-ml collection-init my_collection
 ```
 
 Add a cube:
 
 ```bash
-geocube collection-add-cube my_collection \
+geocube-ml collection-add-cube my_collection \
   --name amazon_1km \
   --region amazon \
   --resolution-label 1km \
@@ -331,7 +316,7 @@ geocube collection-add-cube my_collection \
 Ingest a GeoTIFF:
 
 ```bash
-geocube collection-ingest my_collection soil_ph.tif \
+geocube-ml collection-ingest my_collection soil_ph.tif \
   --cube-name amazon_1km \
   --layer soil_ph \
   --resampling bilinear \
@@ -341,7 +326,7 @@ geocube collection-ingest my_collection soil_ph.tif \
 Ingest a NetCDF variable:
 
 ```bash
-geocube collection-ingest my_collection climate.nc \
+geocube-ml collection-ingest my_collection climate.nc \
   --cube-name amazon_1km \
   --layer annual_precip \
   --variable precip \
@@ -352,13 +337,13 @@ geocube collection-ingest my_collection climate.nc \
 List layers:
 
 ```bash
-geocube collection-layers my_collection --cube-name amazon_1km
+geocube-ml collection-layers my_collection --cube-name amazon_1km
 ```
 
 Inspect provenance:
 
 ```bash
-geocube provenance my_collection/cubes/amazon_1km.zarr soil_ph
+geocube-ml provenance my_collection/cubes/amazon_1km.zarr soil_ph
 ```
 
 ---
@@ -368,8 +353,8 @@ geocube provenance my_collection/cubes/amazon_1km.zarr soil_ph
 Create a collection:
 
 ```python
-from geocube.collection import CubeCollection
-from geocube.grid import CubeGrid
+from geocube-ml.collection import CubeCollection
+from geocube-ml.grid import CubeGrid
 
 collection = CubeCollection("my_collection")
 ```
@@ -458,7 +443,7 @@ mean_soil_ph = soil.where(soil != -9999).mean().compute()
 ## Query provenance in Python
 
 ```python
-from geocube.cube import get_layer_provenance
+from geocube-ml.cube import get_layer_provenance
 
 prov = get_layer_provenance(
     "my_collection/cubes/amazon_1km.zarr",
@@ -476,7 +461,7 @@ print(prov["resampling"])
 
 ```python
 import geopandas as gpd
-from geocube.extract import extract_points
+from geocube-ml.extract import extract_points
 
 points = gpd.read_file("observations.gpkg")
 
@@ -533,7 +518,7 @@ Use `average` when aggregating from finer to coarser grids:
 
 ## Missing values
 
-GeoCube uses a configurable missing value, defaulting to:
+GeoCube-ML uses a configurable missing value, defaulting to:
 
 ```text
 -9999
@@ -560,13 +545,13 @@ valid = da.where(da != -9999)
 Initialize a collection:
 
 ```bash
-geocube collection-init COLLECTION_ROOT
+geocube-ml collection-init COLLECTION_ROOT
 ```
 
 Add a cube:
 
 ```bash
-geocube collection-add-cube COLLECTION_ROOT \
+geocube-ml collection-add-cube COLLECTION_ROOT \
   --name CUBE_NAME \
   --region REGION \
   --resolution-label LABEL \
@@ -580,7 +565,7 @@ geocube collection-add-cube COLLECTION_ROOT \
 Ingest a source raster:
 
 ```bash
-geocube collection-ingest COLLECTION_ROOT SOURCE \
+geocube-ml collection-ingest COLLECTION_ROOT SOURCE \
   --cube-name CUBE_NAME \
   --layer LAYER_NAME
 ```
@@ -588,19 +573,19 @@ geocube collection-ingest COLLECTION_ROOT SOURCE \
 List layers:
 
 ```bash
-geocube collection-layers COLLECTION_ROOT
+geocube-ml collection-layers COLLECTION_ROOT
 ```
 
 List layers in one cube:
 
 ```bash
-geocube collection-layers COLLECTION_ROOT --cube-name CUBE_NAME
+geocube-ml collection-layers COLLECTION_ROOT --cube-name CUBE_NAME
 ```
 
 Show provenance:
 
 ```bash
-geocube provenance CUBE_PATH LAYER_NAME
+geocube-ml provenance CUBE_PATH LAYER_NAME
 ```
 
 ---
@@ -608,9 +593,9 @@ geocube provenance CUBE_PATH LAYER_NAME
 ## Example workflow
 
 ```bash
-geocube collection-init ecological_predictors
+geocube-ml collection-init ecological_predictors
 
-geocube collection-add-cube ecological_predictors \
+geocube-ml collection-add-cube ecological_predictors \
   --name amazon_1km \
   --region amazon \
   --resolution-label 1km \
@@ -620,23 +605,23 @@ geocube collection-add-cube ecological_predictors \
   --xmax -45 \
   --ymax 10
 
-geocube collection-ingest ecological_predictors elevation.tif \
+geocube-ml collection-ingest ecological_predictors elevation.tif \
   --cube-name amazon_1km \
   --layer elevation \
   --resampling bilinear
 
-geocube collection-ingest ecological_predictors landcover.tif \
+geocube-ml collection-ingest ecological_predictors landcover.tif \
   --cube-name amazon_1km \
   --layer landcover \
   --resampling nearest
 
-geocube collection-layers ecological_predictors --cube-name amazon_1km
+geocube-ml collection-layers ecological_predictors --cube-name amazon_1km
 ```
 
 Then in Python:
 
 ```python
-from geocube.collection import CubeCollection
+from geocube-ml.collection import CubeCollection
 
 collection = CubeCollection("ecological_predictors")
 
@@ -652,7 +637,7 @@ print(ds)
 
 ## Design philosophy
 
-GeoCube is not intended to replace GIS software.
+GeoCube-ML is not intended to replace GIS software.
 
 It is a lightweight bridge between raw geospatial rasters and machine learning workflows.
 
