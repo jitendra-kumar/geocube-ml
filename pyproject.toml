@@ -1,0 +1,20 @@
+[project]
+name = "geocube"
+version = "0.1.0"
+dependencies = [
+  "xarray",
+  "rioxarray",
+  "rasterio",
+  "dask",
+  "zarr",
+  "netcdf4",
+  "pystac",
+  "shapely",
+  "geopandas",
+  "pandas",
+  "numpy",
+  "typer"
+]
+
+[project.scripts]
+geocube = "geocube.cli:app"
