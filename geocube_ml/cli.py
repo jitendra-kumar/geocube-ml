@@ -1,12 +1,9 @@
-from pathlib import Path
 import json
 import typer
-import geopandas as gpd
 
 from .grid import CubeGrid
 from .collection import CubeCollection
-from .cube import list_layers, get_layer_provenance, load_layers
-from .extract import extract_points
+from .cube import get_layer_provenance
 from .manifest import load_manifest, validate_cube_manifest
 from .registry import load_registry
 
@@ -126,14 +123,98 @@ def collection_ingest_dir(
         dry_run=dry_run,
     )
 
-    ok = sum(1 for r in results if r["status"] == "ok")
+    completed = sum(
+        1
+        for r in results
+        if r["status"] in {"ingested", "skipped", "would_ingest"}
+    )
     failed = sum(1 for r in results if r["status"] == "failed")
 
-    typer.echo(f"Batch ingest complete: {ok} ok, {failed} failed")
+    typer.echo(f"Batch ingest complete: {completed} completed, {failed} failed")
 
     for result in results:
         if result["status"] == "failed":
             typer.echo(f"FAILED: {result['source']} :: {result['error']}")
+
+
+@app.command("collection-update-layer")
+def collection_update_layer(
+    root: str = typer.Argument(...),
+    source: str = typer.Argument(...),
+    cube_name: str = typer.Option(...),
+    layer: str = typer.Option(...),
+    variable: str | None = typer.Option(None),
+    resampling: str = typer.Option("bilinear"),
+    nodata: float | None = typer.Option(None),
+    missing_value: float = typer.Option(-9999.0),
+    dry_run: bool = typer.Option(False),
+):
+    collection = CubeCollection(root)
+    result = collection.update_layer(
+        cube_name=cube_name,
+        source_path=source,
+        layer_name=layer,
+        variable=variable,
+        resampling=resampling,
+        nodata=nodata,
+        missing_value=missing_value,
+        dry_run=dry_run,
+    )
+    typer.echo(json.dumps(result, indent=2))
+
+
+@app.command("collection-overwrite-layer")
+def collection_overwrite_layer(
+    root: str = typer.Argument(...),
+    source: str = typer.Argument(...),
+    cube_name: str = typer.Option(...),
+    layer: str = typer.Option(...),
+    variable: str | None = typer.Option(None),
+    resampling: str = typer.Option("bilinear"),
+    nodata: float | None = typer.Option(None),
+    missing_value: float = typer.Option(-9999.0),
+    dry_run: bool = typer.Option(False),
+):
+    collection = CubeCollection(root)
+    result = collection.overwrite_layer(
+        cube_name=cube_name,
+        source_path=source,
+        layer_name=layer,
+        variable=variable,
+        resampling=resampling,
+        nodata=nodata,
+        missing_value=missing_value,
+        dry_run=dry_run,
+    )
+    typer.echo(json.dumps(result, indent=2))
+
+
+@app.command("collection-delete-layer")
+def collection_delete_layer(
+    root: str = typer.Argument(...),
+    cube_name: str = typer.Option(...),
+    layer: str = typer.Option(...),
+):
+    collection = CubeCollection(root)
+    result = collection.delete_layer(cube_name=cube_name, layer_name=layer)
+    typer.echo(json.dumps(result, indent=2))
+
+
+@app.command("collection-rename-layer")
+def collection_rename_layer(
+    root: str = typer.Argument(...),
+    cube_name: str = typer.Option(...),
+    layer: str = typer.Option(...),
+    new_layer: str = typer.Option(...),
+):
+    collection = CubeCollection(root)
+    result = collection.rename_layer(
+        cube_name=cube_name,
+        old_name=layer,
+        new_name=new_layer,
+    )
+    typer.echo(json.dumps(result, indent=2))
+
 
 @app.command("collection-layers")
 def collection_layers(
@@ -201,5 +282,3 @@ def layer_history_cmd(
         raise typer.BadParameter(f"No registry entry found for layer: {layer}")
 
     typer.echo(json.dumps(entry, indent=2))
-
-

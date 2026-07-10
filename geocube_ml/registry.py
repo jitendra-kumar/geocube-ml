@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+import copy
 import json
 
 from .provenance import file_sha256
@@ -72,7 +73,7 @@ def latest_layer_record(cube_path: str | Path, layer_name: str) -> dict | None:
     registry = load_registry(cube_path)
     layer = registry.get("layers", {}).get(layer_name)
 
-    if not layer:
+    if not layer or layer.get("deleted"):
         return None
 
     history = layer.get("history", [])
@@ -184,7 +185,87 @@ def append_layer_registry_record(
     }
 
     layer_entry["current_version"] = version
+    layer_entry["deleted"] = False
     layer_entry["history"].append(record)
 
     save_registry(cube_path, registry)
     return record
+
+
+def mark_layer_deleted(cube_path: str | Path, layer_name: str) -> dict:
+    registry = load_registry(cube_path)
+    layers = registry.setdefault("layers", {})
+
+    layer_entry = layers.setdefault(
+        layer_name,
+        {
+            "layer_name": layer_name,
+            "current_version": 0,
+            "history": [],
+        },
+    )
+
+    version = int(layer_entry.get("current_version", 0)) + 1
+    record = {
+        "version": version,
+        "action": "deleted",
+        "deleted_at_utc": now_utc(),
+    }
+
+    layer_entry["current_version"] = version
+    layer_entry["deleted"] = True
+    layer_entry["deleted_at_utc"] = record["deleted_at_utc"]
+    layer_entry["history"].append(record)
+
+    save_registry(cube_path, registry)
+    return record
+
+
+def rename_layer_registry(
+    cube_path: str | Path,
+    old_name: str,
+    new_name: str,
+) -> dict:
+    registry = load_registry(cube_path)
+    layers = registry.setdefault("layers", {})
+
+    existing_new = layers.get(new_name)
+    if existing_new and not existing_new.get("deleted"):
+        raise ValueError(f"Layer already exists in registry: {new_name}")
+
+    old_entry = layers.get(old_name)
+    if not old_entry:
+        save_registry(cube_path, registry)
+        return {}
+
+    new_entry = copy.deepcopy(old_entry)
+    old_version = int(old_entry.get("current_version", 0)) + 1
+    renamed_at = now_utc()
+
+    old_event = {
+        "version": old_version,
+        "action": "renamed_to",
+        "new_layer_name": new_name,
+        "renamed_at_utc": renamed_at,
+    }
+    old_entry["current_version"] = old_version
+    old_entry["deleted"] = True
+    old_entry["renamed_to"] = new_name
+    old_entry["history"].append(old_event)
+
+    new_version = int(new_entry.get("current_version", 0)) + 1
+    new_event = {
+        "version": new_version,
+        "action": "renamed_from",
+        "old_layer_name": old_name,
+        "renamed_at_utc": renamed_at,
+    }
+    new_entry["layer_name"] = new_name
+    new_entry["current_version"] = new_version
+    new_entry["deleted"] = False
+    new_entry.pop("renamed_to", None)
+    new_entry["history"].append(new_event)
+    layers[new_name] = new_entry
+
+    save_registry(cube_path, registry)
+    return new_event

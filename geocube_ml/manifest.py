@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 import json
-import xarray as xr
 
 
 def now_utc() -> str:
@@ -64,12 +63,50 @@ def update_manifest(
     return manifest
 
 
+def remove_layer_manifest(cube_path: str | Path, layer_name: str) -> dict:
+    cube_path = Path(cube_path)
+    manifest = load_manifest(cube_path)
+    manifest["last_updated_utc"] = now_utc()
+    manifest.get("layers", {}).pop(layer_name, None)
+    manifest["layer_count"] = len(manifest.get("layers", {}))
+
+    path = manifest_path(cube_path)
+    path.write_text(json.dumps(manifest, indent=2))
+    return manifest
+
+
+def rename_layer_manifest(
+    cube_path: str | Path,
+    old_name: str,
+    new_name: str,
+) -> dict:
+    cube_path = Path(cube_path)
+    manifest = load_manifest(cube_path)
+    layers = manifest.setdefault("layers", {})
+
+    if old_name not in layers:
+        return manifest
+
+    entry = layers.pop(old_name)
+    entry["name"] = new_name
+    entry["updated_at_utc"] = now_utc()
+    layers[new_name] = entry
+
+    manifest["last_updated_utc"] = now_utc()
+    manifest["layer_count"] = len(layers)
+
+    path = manifest_path(cube_path)
+    path.write_text(json.dumps(manifest, indent=2))
+    return manifest
+
+
 def validate_cube_manifest(cube_path: str | Path) -> dict:
-    ds = xr.open_zarr(cube_path, chunks={})
+    from .cube import list_layers
+
     manifest = load_manifest(cube_path)
 
     manifest_layers = set(manifest.get("layers", {}).keys())
-    actual_layers = set(ds.data_vars)
+    actual_layers = {layer.name for layer in list_layers(str(cube_path))}
 
     return {
         "cube_path": str(cube_path),

@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 import pystac
 from shapely.geometry import box, mapping
 
+from .storage import layer_group_name
+
 
 def upsert_stac_item(
     stac_dir: str,
@@ -13,6 +15,7 @@ def upsert_stac_item(
     source_path: str,
     region: str | None = None,
     provenance: dict | None = None,
+    zarr_group: str | None = None,
 ):
     stac_dir = Path(stac_dir)
     stac_dir.mkdir(parents=True, exist_ok=True)
@@ -43,6 +46,7 @@ def upsert_stac_item(
             "resolution_degrees": grid.resolution,
             "crs": grid.crs,
             "source_path": str(source_path),
+            "zarr_group": zarr_group or layer_group_name(layer_name),
             "provenance": provenance or {},
         },
     )
@@ -67,8 +71,32 @@ def upsert_stac_item(
     )
 
     existing_ids = {child.id for child in catalog.get_items()}
-    if item.id not in existing_ids:
-        catalog.add_item(item)
+    if item.id in existing_ids:
+        catalog.remove_item(item.id)
+
+    catalog.add_item(item)
 
     catalog.normalize_hrefs(str(stac_dir))
     catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+
+
+def delete_stac_item(
+    stac_dir: str,
+    cube_name: str,
+    layer_name: str,
+) -> bool:
+    catalog_path = Path(stac_dir) / "catalog.json"
+    if not catalog_path.exists():
+        return False
+
+    catalog = pystac.Catalog.from_file(str(catalog_path))
+    item_id = f"{cube_name}-{layer_name}"
+    existing_ids = {child.id for child in catalog.get_items()}
+
+    if item_id not in existing_ids:
+        return False
+
+    catalog.remove_item(item_id)
+    catalog.normalize_hrefs(str(catalog_path.parent))
+    catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+    return True

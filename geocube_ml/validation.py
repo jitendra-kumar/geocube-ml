@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import zarr
 
+from .storage import layer_group_exists, layer_group_path
+
 
 def validate_layer_zarr(
     cube_path: str,
@@ -10,7 +12,11 @@ def validate_layer_zarr(
     grid,
     missing_value: float,
 ) -> dict:
-    zg = zarr.open_group(str(cube_path), mode="r")
+    if layer_group_exists(cube_path, layer_name):
+        zg = zarr.open_group(str(layer_group_path(cube_path, layer_name)), mode="r")
+    else:
+        zg = zarr.open_group(str(cube_path), mode="r")
+
     arr = zg[layer_name]
 
     errors = []

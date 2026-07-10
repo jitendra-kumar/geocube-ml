@@ -13,6 +13,11 @@ from .manifest import update_manifest
 from .validation import validate_layer_zarr
 from .provenance import build_provenance
 from .catalog import upsert_stac_item
+from .storage import (
+    layer_group_name,
+    layer_group_path,
+    remove_layer_group,
+)
 from .registry import (
     LayerBuildSpec,
     append_layer_registry_record,
@@ -120,12 +125,13 @@ def initialize_layer_zarr(
     This does not materialize the full array in memory.
     """
     cube_path = Path(cube_path)
-    mode = "a" if cube_path.exists() else "w"
+    cube_path.mkdir(parents=True, exist_ok=True)
+    group_path = layer_group_path(cube_path, layer_name)
 
-    if cube_path.exists() and not overwrite:
-        existing = xr.open_zarr(cube_path)
-        if layer_name in existing:
+    if group_path.exists():
+        if not overwrite:
             raise ValueError(f"Layer already exists: {layer_name}")
+        remove_layer_group(cube_path, layer_name)
 
     y = grid.y_coords()
     x = grid.x_coords()
@@ -166,7 +172,8 @@ def initialize_layer_zarr(
     # Writes metadata and creates the variable lazily/chunked.
     delayed = ds.to_zarr(
         cube_path,
-        mode=mode,
+        group=layer_group_name(layer_name),
+        mode="a",
         encoding=encoding,
         compute=False,
     )
@@ -275,7 +282,7 @@ def ingest_layer(
             overwrite=overwrite,
         )
 
-        zg = zarr.open_group(str(cube_path), mode="a")
+        zg = zarr.open_group(str(layer_group_path(cube_path, layer_name)), mode="a")
         zarr_arr = zg[layer_name]
 
         vrt_kwargs = {
@@ -325,11 +332,15 @@ def ingest_layer(
     layer_stats = stats.finalize()
 
     # Reopen variable attrs through xarray and attach stats.
-    ds = xr.open_zarr(cube_path, chunks={})
+    ds = xr.open_zarr(
+        cube_path,
+        group=layer_group_name(layer_name),
+        chunks={},
+    )
     attrs = dict(ds[layer_name].attrs)
     attrs["statistics"] = json.dumps(layer_stats)
     
-    zg = zarr.open_group(str(cube_path), mode="a")
+    zg = zarr.open_group(str(layer_group_path(cube_path, layer_name)), mode="a")
     zg[layer_name].attrs.update(attrs)
     
     validation = validate_layer_zarr(
@@ -362,13 +373,10 @@ def ingest_layer(
             grid=grid,
             source_path=source_path,
             region=region,
-            provenance=provenance_dict(),
+            provenance=provenance_dict,
+            zarr_group=layer_group_name(layer_name),
         )
 
-    provenance_dict = provenance.to_dict()
-    provenance_dict["statistics"] = layer_stats
-    provenance_dict["validation"] = validation
-    
     append_layer_registry_record(
         cube_path=cube_path,
         layer_name=layer_name,
