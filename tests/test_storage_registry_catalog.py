@@ -6,6 +6,7 @@ import pystac
 
 from geocube_ml.catalog import delete_stac_item, upsert_stac_item
 from geocube_ml.grid import CubeGrid
+from geocube_ml.provenance import build_provenance
 from geocube_ml.registry import (
     LayerBuildSpec,
     append_layer_registry_record,
@@ -108,6 +109,29 @@ class RegistryTest(unittest.TestCase):
             self.assertEqual(registry["layers"]["new_name"]["layer_name"], "new_name")
 
 
+class ProvenanceTest(unittest.TestCase):
+    def test_description_is_serialized_in_layer_provenance(self):
+        with TemporaryDirectory() as tmp:
+            source_path = Path(tmp) / "source.tif"
+            source_path.write_bytes(b"source")
+            grid = CubeGrid("cube", 1.0, 0.0, 0.0, 1.0, 1.0)
+
+            provenance = build_provenance(
+                source_path=str(source_path),
+                layer_name="soil_ph",
+                cube_name="cube",
+                grid=grid,
+                region="arctic",
+                resampling="bilinear",
+                description="Mean soil pH from 0 to 100 cm.",
+            )
+
+            self.assertEqual(
+                provenance.to_dict()["description"],
+                "Mean soil pH from 0 to 100 cm.",
+            )
+
+
 class CatalogTest(unittest.TestCase):
     def test_upsert_replaces_existing_item_and_delete_removes_it(self):
         with TemporaryDirectory() as tmp:
@@ -124,6 +148,7 @@ class CatalogTest(unittest.TestCase):
                 "soil_ph",
                 grid,
                 source_path,
+                description="Mean soil pH from 0 to 100 cm.",
                 provenance={"version": 1},
             )
             upsert_stac_item(
@@ -133,6 +158,7 @@ class CatalogTest(unittest.TestCase):
                 "soil_ph",
                 grid,
                 source_path,
+                description="Updated mean soil pH from 0 to 100 cm.",
                 provenance={"version": 2},
             )
 
@@ -140,6 +166,10 @@ class CatalogTest(unittest.TestCase):
             items = list(catalog.get_items())
             self.assertEqual(len(items), 1)
             self.assertEqual(items[0].id, "cube-soil_ph")
+            self.assertEqual(
+                items[0].properties["description"],
+                "Updated mean soil pH from 0 to 100 cm.",
+            )
             self.assertEqual(items[0].properties["provenance"], {"version": 2})
             self.assertEqual(items[0].properties["zarr_group"], "layers/soil_ph")
 

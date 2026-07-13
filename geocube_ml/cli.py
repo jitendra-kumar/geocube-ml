@@ -65,6 +65,7 @@ def collection_ingest(
     cube_name: str = typer.Option(...),
     source: str = typer.Argument(...),
     layer: str = typer.Option(...),
+    description: str | None = typer.Option(None),
     variable: str | None = typer.Option(None),
     resampling: str = typer.Option("bilinear"),
     nodata: float | None = typer.Option(None),
@@ -79,6 +80,7 @@ def collection_ingest(
         cube_name=cube_name,
         source_path=source,
         layer_name=layer,
+        description=description,
         variable=variable,
         resampling=resampling,
         nodata=nodata,
@@ -98,6 +100,7 @@ def collection_ingest_dir(
     source_dir: str = typer.Argument(...),
     cube_name: str = typer.Option(...),
     pattern: str = typer.Option("*"),
+    description: str | None = typer.Option(None),
     variable: str | None = typer.Option(None),
     resampling: str = typer.Option("bilinear"),
     nodata: float | None = typer.Option(None),
@@ -113,6 +116,7 @@ def collection_ingest_dir(
         cube_name=cube_name,
         source_dir=source_dir,
         pattern=pattern,
+        description=description,
         variable=variable,
         resampling=resampling,
         nodata=nodata,
@@ -143,6 +147,7 @@ def collection_update_layer(
     source: str = typer.Argument(...),
     cube_name: str = typer.Option(...),
     layer: str = typer.Option(...),
+    description: str | None = typer.Option(None),
     variable: str | None = typer.Option(None),
     resampling: str = typer.Option("bilinear"),
     nodata: float | None = typer.Option(None),
@@ -154,6 +159,7 @@ def collection_update_layer(
         cube_name=cube_name,
         source_path=source,
         layer_name=layer,
+        description=description,
         variable=variable,
         resampling=resampling,
         nodata=nodata,
@@ -169,6 +175,7 @@ def collection_overwrite_layer(
     source: str = typer.Argument(...),
     cube_name: str = typer.Option(...),
     layer: str = typer.Option(...),
+    description: str | None = typer.Option(None),
     variable: str | None = typer.Option(None),
     resampling: str = typer.Option("bilinear"),
     nodata: float | None = typer.Option(None),
@@ -180,6 +187,7 @@ def collection_overwrite_layer(
         cube_name=cube_name,
         source_path=source,
         layer_name=layer,
+        description=description,
         variable=variable,
         resampling=resampling,
         nodata=nodata,
@@ -226,16 +234,22 @@ def collection_layers(
 
     if cube_name:
         for layer in layers:
-            typer.echo(
+            line = (
                 f"{layer.name} | cube={layer.cube_name} | region={layer.region} | "
                 f"grid={layer.grid_name} | res={layer.resolution_degrees}"
             )
+            if layer.description:
+                line += f" | description={layer.description}"
+            typer.echo(line)
         return
 
     for cube, cube_layers in layers.items():
         typer.echo(f"\n{cube}")
         for layer in cube_layers:
-            typer.echo(f"  - {layer.name} | region={layer.region} | res={layer.resolution_degrees}")
+            line = f"  - {layer.name} | region={layer.region} | res={layer.resolution_degrees}"
+            if layer.description:
+                line += f" | description={layer.description}"
+            typer.echo(line)
 
 
 @app.command("provenance")

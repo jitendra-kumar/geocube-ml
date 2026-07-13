@@ -20,6 +20,7 @@ class LayerProvenance:
     source_sha256: str
     source_variable: str | None
     layer_name: str
+    description: str | None
     cube_name: str
     grid_name: str
     region: str
@@ -49,6 +50,7 @@ def build_provenance(
     region: str,
     resampling: str,
     source_variable: str | None = None,
+    description: str | None = None,
     source_nodata: float | None = None,
     missing_value: float = -9999.0,
 ) -> LayerProvenance:
@@ -57,6 +59,7 @@ def build_provenance(
         source_sha256=file_sha256(source_path),
         source_variable=source_variable,
         layer_name=layer_name,
+        description=description,
         cube_name=cube_name,
         grid_name=grid.name,
         region=region,

@@ -14,6 +14,7 @@ def upsert_stac_item(
     grid,
     source_path: str,
     region: str | None = None,
+    description: str | None = None,
     provenance: dict | None = None,
     zarr_group: str | None = None,
 ):
@@ -40,6 +41,7 @@ def upsert_stac_item(
         datetime=datetime.now(timezone.utc),
         properties={
             "layer_name": layer_name,
+            "description": description,
             "cube_name": cube_name,
             "region": region or "unspecified",
             "grid_name": grid.name,

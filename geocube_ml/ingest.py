@@ -189,6 +189,7 @@ def ingest_layer(
     cube_name: str,
     grid,
     layer_name: str,
+    description: str | None = None,
     variable: str | None = None,
     region: str | None = None,
     resampling: str = "bilinear",
@@ -256,12 +257,14 @@ def ingest_layer(
             region=region,
             resampling=resampling,
             source_variable=variable,
+            description=description,
             source_nodata=source_nodata,
             missing_value=missing_value,
         )
 
         attrs = {
             "source_path": str(source_path),
+            "description": description,
             "region": region,
             "cube_name": cube_name,
             "grid_name": grid.name,
@@ -373,6 +376,7 @@ def ingest_layer(
             grid=grid,
             source_path=source_path,
             region=region,
+            description=description,
             provenance=provenance_dict,
             zarr_group=layer_group_name(layer_name),
         )

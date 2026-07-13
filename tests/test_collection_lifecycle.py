@@ -21,6 +21,7 @@ class CollectionLifecycleTest(unittest.TestCase):
             collection = CubeCollection(tmp_path / "collection")
 
             def fake_ingest(**kwargs):
+                self.assertEqual(kwargs["description"], "Mean soil pH layer.")
                 return {
                     "layer": kwargs["layer_name"],
                     "status": "ingested",
@@ -34,6 +35,7 @@ class CollectionLifecycleTest(unittest.TestCase):
                 cube_name="arctic_30sec",
                 source_dir=str(source_dir),
                 pattern="*",
+                description="Mean soil pH layer.",
             )
 
             self.assertEqual(
@@ -70,6 +72,7 @@ class CollectionLifecycleTest(unittest.TestCase):
                 "soil_ph",
                 {
                     "region": "arctic",
+                    "description": "Mean soil pH layer.",
                     "cube_name": "arctic_30sec",
                     "grid_name": "arctic_30sec",
                     "crs": "EPSG:4326",
@@ -97,11 +100,17 @@ class CollectionLifecycleTest(unittest.TestCase):
                 tmp_path / "source.tif",
             )
 
+            self.assertEqual(
+                load_manifest(record.path)["layers"]["soil_ph"]["description"],
+                "Mean soil pH layer.",
+            )
+
             result = collection.delete_layer("arctic_30sec", "soil_ph")
 
             self.assertEqual(result["status"], "deleted")
             self.assertFalse(layer_group.exists())
-            self.assertNotIn("soil_ph", load_manifest(record.path)["layers"])
+            manifest = load_manifest(record.path)
+            self.assertNotIn("soil_ph", manifest["layers"])
             self.assertTrue(load_registry(record.path)["layers"]["soil_ph"]["deleted"])
 
 

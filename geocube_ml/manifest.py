@@ -42,6 +42,7 @@ def update_manifest(
 
     manifest["layers"][layer_name] = {
         "name": layer_name,
+        "description": layer_attrs.get("description"),
         "region": layer_attrs.get("region"),
         "cube_name": layer_attrs.get("cube_name"),
         "grid_name": layer_attrs.get("grid_name"),

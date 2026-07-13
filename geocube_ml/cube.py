@@ -15,6 +15,7 @@ from .storage import (
 @dataclass
 class LayerInfo:
     name: str
+    description: str | None
     dims: tuple
     dtype: str
     region: str
@@ -97,6 +98,7 @@ def list_layers(cube_path: str) -> list[LayerInfo]:
         layers.append(
             LayerInfo(
                 name=name,
+                description=da.attrs.get("description"),
                 dims=tuple(da.dims),
                 dtype=str(da.dtype),
                 region=da.attrs.get("region", "unspecified"),
@@ -126,6 +128,7 @@ def list_layers(cube_path: str) -> list[LayerInfo]:
         layers.append(
             LayerInfo(
                 name=name,
+                description=da.attrs.get("description"),
                 dims=tuple(da.dims),
                 dtype=str(da.dtype),
                 region=da.attrs.get("region", "unspecified"),

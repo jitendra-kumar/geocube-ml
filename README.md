@@ -36,7 +36,7 @@ Typical predictor layers include:
 - Grid definitions with CRS, extent, resolution, and chunk size.
 - Blockwise ingest from GeoTIFF and NetCDF using Rasterio `WarpedVRT`.
 - Per-layer Zarr group storage under `cube.zarr/layers/<layer_name>`.
-- Layer provenance with source path, SHA256 checksum, processing parameters, and software metadata.
+- Layer provenance with source path, SHA256 checksum, description, processing parameters, and software metadata.
 - Manifest sidecar for fast layer summaries.
 - Registry sidecar for version history and incremental update decisions.
 - STAC catalog items for each layer.
@@ -167,6 +167,7 @@ geocube-ml collection-ingest /path/to/arctic_geocubes \
   /path/to/ph_0-100cm_mean.tif \
   --cube-name arctic_30sec \
   --layer soil_ph \
+  --description "Mean soil pH from 0 to 100 cm depth." \
   --resampling bilinear \
   --missing-value -9999
 ```
@@ -186,6 +187,7 @@ geocube-ml collection-ingest /path/to/my_collection \
   --cube-name arctic_30sec \
   --layer annual_precip \
   --variable precip \
+  --description "Annual precipitation summary." \
   --resampling bilinear \
   --missing-value -9999
 ```
@@ -197,11 +199,13 @@ geocube-ml collection-ingest-dir /path/to/my_collection \
   /path/to/raw_predictors \
   --cube-name arctic_30sec \
   --pattern "*.tif" \
+  --description "Batch-ingested predictor layer." \
   --resampling bilinear \
   --missing-value -9999
 ```
 
 Batch ingest returns one result per source file and can continue after failures.
+When supplied, `--description` is applied to every layer matched by the batch.
 
 ### Update A Layer
 
@@ -213,6 +217,7 @@ geocube-ml collection-update-layer /path/to/my_collection \
   /path/to/ph_0-100cm_mean.tif \
   --cube-name arctic_30sec \
   --layer soil_ph \
+  --description "Mean soil pH from 0 to 100 cm depth." \
   --resampling bilinear \
   --missing-value -9999
 ```
@@ -224,6 +229,7 @@ geocube-ml collection-overwrite-layer /path/to/my_collection \
   /path/to/ph_0-100cm_mean.tif \
   --cube-name arctic_30sec \
   --layer soil_ph \
+  --description "Mean soil pH from 0 to 100 cm depth." \
   --resampling bilinear \
   --missing-value -9999
 ```
@@ -328,6 +334,7 @@ collection.ingest(
     cube_name="arctic_30sec",
     source_path="/path/to/ph_0-100cm_mean.tif",
     layer_name="soil_ph",
+    description="Mean soil pH from 0 to 100 cm depth.",
     resampling="bilinear",
     missing_value=-9999,
 )
@@ -351,12 +358,14 @@ collection.update_layer(
     cube_name="arctic_30sec",
     source_path="/path/to/ph_0-100cm_mean.tif",
     layer_name="soil_ph",
+    description="Mean soil pH from 0 to 100 cm depth.",
 )
 
 collection.overwrite_layer(
     cube_name="arctic_30sec",
     source_path="/path/to/ph_0-100cm_mean.tif",
     layer_name="soil_ph",
+    description="Mean soil pH from 0 to 100 cm depth.",
 )
 
 collection.rename_layer(
@@ -405,6 +414,7 @@ Each layer records:
 - source SHA256 checksum
 - source NetCDF variable, if applicable
 - layer name
+- layer description, if supplied
 - cube name
 - grid name
 - region
@@ -431,6 +441,7 @@ The collection-level `catalog/catalog.json` contains one STAC Item per layer.
 Each item includes:
 
 - layer name
+- layer description, if supplied
 - cube name
 - region
 - grid name
