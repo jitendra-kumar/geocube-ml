@@ -99,8 +99,19 @@ def is_netcdf_source(source_path: str | Path) -> bool:
     return str(source_path).lower().endswith(NETCDF_EXTENSIONS)
 
 
+def validate_source_file(source_path: str | Path) -> Path:
+    """Return a normalized source path or raise a clear file-not-found error."""
+    path = Path(source_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Source file does not exist: {path}")
+    if not path.is_file():
+        raise FileNotFoundError(f"Source path is not a file: {path}")
+    return path
+
+
 def list_netcdf_variables(source_path: str | Path) -> list[str]:
     """List data variable names from a NetCDF file."""
+    source_path = validate_source_file(source_path)
     with xr.open_dataset(source_path, decode_times=False) as ds:
         return sorted(ds.data_vars)
 
@@ -115,6 +126,7 @@ def rasterio_source_path(source_path: str, variable: str | None = None) -> str:
     NetCDF:
         NETCDF:"file.nc":variable
     """
+    source_path = str(validate_source_file(source_path))
     lower = source_path.lower()
 
     if lower.endswith((".tif", ".tiff")):
@@ -167,6 +179,7 @@ def _prepare_netcdf_dataarray(
     if variable is None:
         raise ValueError("NetCDF ingest requires variable=...")
 
+    source_path = validate_source_file(source_path)
     ds = xr.open_dataset(source_path, decode_times=False)
     if variable not in ds.data_vars:
         available = sorted(ds.data_vars)

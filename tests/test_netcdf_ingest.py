@@ -6,7 +6,11 @@ import numpy as np
 import xarray as xr
 
 from geocube_ml.collection import CubeCollection
-from geocube_ml.ingest import list_netcdf_variables, rasterio_source_path
+from geocube_ml.ingest import (
+    list_netcdf_variables,
+    rasterio_source_path,
+    validate_source_file,
+)
 
 
 def write_test_netcdf(path: Path) -> None:
@@ -29,6 +33,16 @@ def write_test_netcdf(path: Path) -> None:
 
 
 class NetCDFIngestTest(unittest.TestCase):
+    def test_missing_source_file_has_clear_error(self):
+        with TemporaryDirectory() as tmp:
+            missing_path = Path(tmp) / "missing.nc"
+
+            with self.assertRaisesRegex(FileNotFoundError, "Source file does not exist"):
+                validate_source_file(missing_path)
+
+            with self.assertRaisesRegex(FileNotFoundError, "Source file does not exist"):
+                rasterio_source_path(str(missing_path), variable="ALT")
+
     def test_list_netcdf_variables_and_require_variable_name(self):
         with TemporaryDirectory() as tmp:
             source_path = Path(tmp) / "soil.nc"
